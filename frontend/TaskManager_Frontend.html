@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TaskManager — Matar Gueye</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0f13;
+  --surface: #17171e;
+  --surface2: #1e1e28;
+  --border: rgba(255,255,255,0.07);
+  --accent: #6c63ff;
+  --accent2: #ff6584;
+  --accent3: #43e97b;
+  --text: #e8e8f0;
+  --muted: #6b6b7e;
+  --radius: 12px;
+  --todo: #6c63ff;
+  --progress: #f7971e;
+  --done: #43e97b;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0; width: 220px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  padding: 24px 0;
+  z-index: 10;
+}
+.logo {
+  padding: 0 20px 28px;
+  font-size: 18px; font-weight: 600;
+  display: flex; align-items: center; gap: 10px;
+  letter-spacing: -0.5px;
+}
+.logo-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.nav-section {
+  padding: 0 12px;
+  flex: 1;
+}
+.nav-label {
+  font-size: 10px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px;
+  padding: 0 8px; margin-bottom: 6px; margin-top: 16px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: 8px;
+  cursor: pointer; color: var(--muted);
+  transition: all 0.15s;
+  margin-bottom: 2px;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: rgba(108,99,255,0.15); color: var(--accent); }
+.nav-icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--accent); color: #fff;
+  font-size: 10px; font-weight: 600;
+  padding: 2px 6px; border-radius: 20px; min-width: 18px; text-align: center;
+}
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600; color: #fff; flex-shrink: 0;
+}
+.user-info { overflow: hidden; }
+.user-name { font-weight: 500; font-size: 13px; }
+.user-role { font-size: 11px; color: var(--muted); }
+
+/* ── MAIN ── */
+.main { margin-left: 220px; padding: 32px 36px; min-height: 100vh; }
+
+/* ── HEADER ── */
+.page-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 28px;
+}
+.page-title { font-size: 24px; font-weight: 600; letter-spacing: -0.5px; }
+.page-sub { color: var(--muted); margin-top: 4px; font-size: 13px; }
+
+/* ── STATS ── */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  margin-bottom: 28px;
+}
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+  position: relative; overflow: hidden;
+  transition: border-color 0.2s;
+}
+.stat-card:hover { border-color: rgba(108,99,255,0.3); }
+.stat-card::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: var(--c, var(--accent));
+}
+.stat-num { font-size: 28px; font-weight: 600; letter-spacing: -1px; font-family: 'DM Mono', monospace; }
+.stat-label { color: var(--muted); font-size: 12px; margin-top: 4px; font-weight: 500; }
+.stat-icon {
+  position: absolute; right: 16px; top: 16px;
+  font-size: 22px; opacity: 0.15;
+}
+
+/* ── TOOLBAR ── */
+.toolbar {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.search-box {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 14px; flex: 1; max-width: 320px;
+  transition: border-color 0.2s;
+}
+.search-box:focus-within { border-color: var(--accent); }
+.search-box input {
+  background: none; border: none; outline: none;
+  color: var(--text); font-family: inherit; font-size: 13px; width: 100%;
+}
+.search-box input::placeholder { color: var(--muted); }
+.filter-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 14px; cursor: pointer;
+  color: var(--muted); font-size: 13px; font-family: inherit;
+  transition: all 0.15s;
+}
+.filter-btn:hover, .filter-btn.active { border-color: var(--accent); color: var(--accent); }
+.btn-primary {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--accent); border: none; border-radius: 8px;
+  padding: 9px 18px; cursor: pointer;
+  color: #fff; font-size: 13px; font-weight: 500; font-family: inherit;
+  transition: opacity 0.15s; margin-left: auto;
+}
+.btn-primary:hover { opacity: 0.85; }
+
+/* ── KANBAN ── */
+.kanban { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.column {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  min-height: 400px;
+}
+.col-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.col-title {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 600; font-size: 13px;
+}
+.col-dot { width: 8px; height: 8px; border-radius: 50%; }
+.col-count {
+  background: var(--surface2); color: var(--muted);
+  font-size: 11px; padding: 2px 7px; border-radius: 20px;
+  font-family: 'DM Mono', monospace;
+}
+
+/* ── TASK CARD ── */
+.task-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px; margin-bottom: 10px;
+  cursor: pointer; transition: all 0.15s;
+  position: relative;
+}
+.task-card:hover {
+  border-color: rgba(108,99,255,0.3);
+  transform: translateY(-1px);
+}
+.task-card::before {
+  content: ''; position: absolute;
+  left: 0; top: 6px; bottom: 6px; width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--pc, transparent);
+}
+.task-title { font-weight: 500; font-size: 13px; margin-bottom: 6px; line-height: 1.4; }
+.task-desc { color: var(--muted); font-size: 12px; margin-bottom: 10px; line-height: 1.5; }
+.task-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.badge {
+  font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.badge-cat { background: rgba(108,99,255,0.15); color: var(--accent); }
+.badge-prio-low     { background: rgba(67,233,123,0.12); color: var(--accent3); }
+.badge-prio-medium  { background: rgba(247,151,30,0.12); color: var(--progress); }
+.badge-prio-high    { background: rgba(255,101,132,0.15); color: var(--accent2); }
+.badge-prio-urgent  { background: rgba(255,101,132,0.25); color: var(--accent2); }
+.task-date { margin-left: auto; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+.task-date.overdue { color: var(--accent2); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.15s ease;
+}
+@keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+.modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 28px; width: 480px; max-width: 95vw;
+  animation: slideUp 0.2s ease;
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity:0 } to { transform: translateY(0); opacity:1 } }
+.modal-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+.form-input, .form-select, .form-textarea {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px;
+  color: var(--text); font-family: inherit; font-size: 13px; outline: none;
+  transition: border-color 0.2s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-select option { background: var(--surface2); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+.btn-cancel {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 18px; cursor: pointer;
+  color: var(--muted); font-size: 13px; font-family: inherit;
+  transition: all 0.15s;
+}
+.btn-cancel:hover { color: var(--text); border-color: var(--text); }
+
+/* ── NOTIFICATIONS ── */
+.notif-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 0; overflow: hidden;
+}
+.notif-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 14px; }
+.notif-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  transition: background 0.1s; cursor: pointer;
+}
+.notif-item:hover { background: var(--surface2); }
+.notif-item.unread { background: rgba(108,99,255,0.05); }
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-top: 5px; flex-shrink: 0; }
+.notif-dot.read { background: transparent; border: 1px solid var(--muted); }
+.notif-text { font-size: 13px; line-height: 1.5; }
+.notif-time { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+.empty-icon { font-size: 36px; margin-bottom: 10px; }
+.empty-text { font-size: 13px; }
+
+/* ── TABS ── */
+.tabs { display: flex; gap: 4px; margin-bottom: 24px; }
+.tab {
+  padding: 8px 16px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 500; color: var(--muted);
+  transition: all 0.15s; border: 1px solid transparent;
+}
+.tab:hover { color: var(--text); }
+.tab.active { background: var(--surface); border-color: var(--border); color: var(--text); }
+
+/* ── LOGIN ── */
+.login-page {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+}
+.login-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 40px; width: 380px;
+  text-align: center;
+}
+.login-logo { font-size: 40px; margin-bottom: 16px; }
+.login-title { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+.login-sub { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+.login-card .form-group { text-align: left; }
+.btn-login {
+  width: 100%; background: var(--accent); border: none;
+  border-radius: 10px; padding: 12px; cursor: pointer;
+  color: #fff; font-size: 14px; font-weight: 600; font-family: inherit;
+  margin-top: 8px; transition: opacity 0.15s;
+}
+.btn-login:hover { opacity: 0.85; }
+.login-hint { font-size: 11px; color: var(--muted); margin-top: 16px; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const { createApp, ref, computed } = Vue;
+
+createApp({
+  setup() {
+    const loggedIn = ref(false);
+    const activeNav = ref('dashboard');
+    const activeTab = ref('kanban');
+    const showModal = ref(false);
+    const searchQ = ref('');
+    const filterPrio = ref('');
+    const loginEmail = ref('matar@example.com');
+    const loginPass = ref('');
+    const loginError = ref('');
+
+    const newTask = ref({ title: '', description: '', priority: 'medium', category: 'Perso', due_date: '', status: 'todo' });
+
+    const tasks = ref([
+      { id:1, title:'Rédiger le rapport architecture', description:'Documenter les phases 1 à 3 du projet', status:'in_progress', priority:'urgent', category:'Projet', due_date:'2025-06-05', created_at:'il y a 2h' },
+      { id:2, title:'Implémenter le TaskService', description:'Service layer avec pattern Repository', status:'in_progress', priority:'high', category:'Dev', due_date:'2025-06-03', created_at:'il y a 3h' },
+      { id:3, title:'Configurer PostgreSQL', description:'Setup base de données et migrations', status:'done', priority:'medium', category:'Dev', due_date:'2025-05-28', created_at:'hier' },
+      { id:4, title:'Créer les diagrammes UML', description:'Cas d\'utilisation, classes et séquence', status:'todo', priority:'high', category:'Projet', due_date:'2025-06-04', created_at:'il y a 1h' },
+      { id:5, title:'Setup RabbitMQ', description:'Communication asynchrone entre services', status:'todo', priority:'medium', category:'Dev', due_date:'2025-06-08', created_at:'il y a 5h' },
+      { id:6, title:'Documentation Swagger', description:'Annoter tous les endpoints API REST', status:'todo', priority:'low', category:'Dev', due_date:'2025-06-10', created_at:'il y a 6h' },
+      { id:7, title:'Préparer la soutenance', description:'Slides et démonstration technique', status:'done', priority:'high', category:'Projet', due_date:'2025-05-30', created_at:'avant-hier' },
+      { id:8, title:'Tests unitaires PHPUnit', description:'Couverture > 70% du code métier', status:'todo', priority:'medium', category:'Dev', due_date:'2025-06-09', created_at:'il y a 4h' },
+    ]);
+
+    const notifications = ref([
+      { id:1, message:'Tâche "Rédiger le rapport architecture" créée avec succès', time:'il y a 2h', read: false },
+      { id:2, message:'Rappel : "Implémenter le TaskService" est due dans 24h', time:'il y a 3h', read: false },
+      { id:3, message:'Tâche "Configurer PostgreSQL" marquée comme terminée', time:'hier', read: true },
+      { id:4, message:'Nouvelle catégorie "Projet" créée', time:'il y a 2j', read: true },
+    ]);
+
+    const unreadCount = computed(() => notifications.value.filter(n => !n.read).length);
+
+    const filteredTasks = computed(() => {
+      return tasks.value.filter(t => {
+        const matchSearch = !searchQ.value || t.title.toLowerCase().includes(searchQ.value.toLowerCase());
+        const matchPrio = !filterPrio.value || t.priority === filterPrio.value;
+        return matchSearch && matchPrio;
+      });
+    });
+
+    const todoTasks = computed(() => filteredTasks.value.filter(t => t.status === 'todo'));
+    const progressTasks = computed(() => filteredTasks.value.filter(t => t.status === 'in_progress'));
+    const doneTasks = computed(() => filteredTasks.value.filter(t => t.status === 'done'));
+
+    const stats = computed(() => ({
+      total: tasks.value.length,
+      todo: tasks.value.filter(t => t.status === 'todo').length,
+      progress: tasks.value.filter(t => t.status === 'in_progress').length,
+      done: tasks.value.filter(t => t.status === 'done').length,
+    }));
+
+    function prioColor(p) {
+      return { urgent: '#ff6584', high: '#f7971e', medium: '#f7971e', low: '#43e97b' }[p] || '#6c63ff';
+    }
+
+    function login() {
+      if (loginEmail.value && loginPass.value) { loggedIn.value = true; loginError.value = ''; }
+      else { loginError.value = 'Veuillez remplir tous les champs.'; }
+    }
+
+    function addTask() {
+      if (!newTask.value.title) return;
+      tasks.value.unshift({
+        id: Date.now(),
+        title: newTask.value.title,
+        description: newTask.value.description,
+        status: newTask.value.status || 'todo',
+        priority: newTask.value.priority,
+        category: newTask.value.category,
+        due_date: newTask.value.due_date,
+        created_at: 'à l\'instant',
+      });
+      notifications.value.unshift({
+        id: Date.now(),
+        message: `Tâche "${newTask.value.title}" créée avec succès`,
+        time: 'à l\'instant',
+        read: false,
+      });
+      newTask.value = { title: '', description: '', priority: 'medium', category: 'Dev', due_date: '', status: 'todo' };
+      showModal.value = false;
+    }
+
+    function moveTask(task, status) {
+      task.status = status;
+    }
+
+    function markAllRead() {
+      notifications.value.forEach(n => n.read = true);
+    }
+
+    return {
+      loggedIn, activeNav, activeTab, showModal, searchQ, filterPrio,
+      loginEmail, loginPass, loginError,
+      newTask, tasks, notifications, unreadCount,
+      filteredTasks, todoTasks, progressTasks, doneTasks, stats,
+      prioColor, login, addTask, moveTask, markAllRead,
+    };
+  },
+
+  template: `
+  <!-- LOGIN -->
+  <div v-if="!loggedIn" class="login-page">
+    <div class="login-card">
+      <div class="login-logo">✅</div>
+      <div class="login-title">TaskManager</div>
+      <div class="login-sub">Gérez vos tâches simplement</div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input v-model="loginEmail" class="form-input" type="email" placeholder="votre@email.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mot de passe</label>
+        <input v-model="loginPass" class="form-input" type="password" placeholder="••••••••" @keyup.enter="login"/>
+      </div>
+      <div v-if="loginError" style="color:#ff6584;font-size:12px;margin-bottom:8px;">{{ loginError }}</div>
+      <button class="btn-login" @click="login">Se connecter →</button>
+      <div class="login-hint">Tapez n'importe quel mot de passe pour accéder à la démo</div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <template v-else>
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="logo">
+        <div class="logo-icon">✓</div>
+        TaskManager
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Menu</div>
+        <div class="nav-item" :class="{active: activeNav==='dashboard'}" @click="activeNav='dashboard'">
+          <span class="nav-icon">⊞</span> Tableau de bord
+        </div>
+        <div class="nav-item" :class="{active: activeNav==='tasks'}" @click="activeNav='tasks'">
+          <span class="nav-icon">☑</span> Mes tâches
+          <span class="nav-badge">{{ stats.todo }}</span>
+        </div>
+        <div class="nav-item" :class="{active: activeNav==='notifs'}" @click="activeNav='notifs'">
+          <span class="nav-icon">🔔</span> Notifications
+          <span class="nav-badge" v-if="unreadCount">{{ unreadCount }}</span>
+        </div>
+        <div class="nav-label">Catégories</div>
+        <div class="nav-item"><span class="nav-icon" style="color:var(--accent)">●</span> Dev</div>
+        <div class="nav-item"><span class="nav-icon" style="color:var(--accent2)">●</span> Projet</div>
+        <div class="nav-item"><span class="nav-icon" style="color:var(--accent3)">●</span> Perso</div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="avatar">MG</div>
+        <div class="user-info">
+          <div class="user-name">Matar Gueye</div>
+          <div class="user-role">Étudiant L3</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="main">
+
+      <!-- DASHBOARD -->
+      <template v-if="activeNav==='dashboard'">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Tableau de bord</div>
+            <div class="page-sub">Bonjour Matar 👋 — {{ new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'}) }}</div>
+          </div>
+          <button class="btn-primary" @click="showModal=true">+ Nouvelle tâche</button>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card" style="--c:#6c63ff">
+            <div class="stat-icon">📋</div>
+            <div class="stat-num">{{ stats.total }}</div>
+            <div class="stat-label">Total tâches</div>
+          </div>
+          <div class="stat-card" style="--c:#6c63ff">
+            <div class="stat-icon">📌</div>
+            <div class="stat-num">{{ stats.todo }}</div>
+            <div class="stat-label">À faire</div>
+          </div>
+          <div class="stat-card" style="--c:#f7971e">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-num">{{ stats.progress }}</div>
+            <div class="stat-label">En cours</div>
+          </div>
+          <div class="stat-card" style="--c:#43e97b">
+            <div class="stat-icon">✅</div>
+            <div class="stat-num">{{ stats.done }}</div>
+            <div class="stat-label">Terminées</div>
+          </div>
+        </div>
+
+        <!-- Kanban preview -->
+        <div class="tabs">
+          <div class="tab" :class="{active: activeTab==='kanban'}" @click="activeTab='kanban'">Vue Kanban</div>
+          <div class="tab" :class="{active: activeTab==='list'}" @click="activeTab='list'">Vue Liste</div>
+        </div>
+
+        <template v-if="activeTab==='kanban'">
+          <div class="kanban">
+            <!-- TODO -->
+            <div class="column">
+              <div class="col-header">
+                <div class="col-title">
+                  <div class="col-dot" style="background:var(--todo)"></div>
+                  À faire
+                </div>
+                <span class="col-count">{{ todoTasks.length }}</span>
+              </div>
+              <div v-if="todoTasks.length === 0" class="empty-state">
+                <div class="empty-icon">📭</div>
+                <div class="empty-text">Aucune tâche</div>
+              </div>
+              <div v-for="t in todoTasks" :key="t.id" class="task-card" :style="{'--pc': prioColor(t.priority)}">
+                <div class="task-title">{{ t.title }}</div>
+                <div class="task-desc" v-if="t.description">{{ t.description }}</div>
+                <div class="task-meta">
+                  <span class="badge badge-cat">{{ t.category }}</span>
+                  <span class="badge" :class="'badge-prio-'+t.priority">{{ t.priority }}</span>
+                  <span v-if="t.due_date" class="task-date">{{ t.due_date }}</span>
+                </div>
+                <div style="margin-top:8px;display:flex;gap:6px">
+                  <button @click="moveTask(t,'in_progress')" style="background:rgba(247,151,30,0.12);color:#f7971e;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px;font-family:inherit">→ En cours</button>
+                </div>
+              </div>
+            </div>
+            <!-- IN PROGRESS -->
+            <div class="column">
+              <div class="col-header">
+                <div class="col-title">
+                  <div class="col-dot" style="background:var(--progress)"></div>
+                  En cours
+                </div>
+                <span class="col-count">{{ progressTasks.length }}</span>
+              </div>
+              <div v-if="progressTasks.length === 0" class="empty-state">
+                <div class="empty-icon">⚡</div>
+                <div class="empty-text">Aucune tâche</div>
+              </div>
+              <div v-for="t in progressTasks" :key="t.id" class="task-card" :style="{'--pc': prioColor(t.priority)}">
+                <div class="task-title">{{ t.title }}</div>
+                <div class="task-desc" v-if="t.description">{{ t.description }}</div>
+                <div class="task-meta">
+                  <span class="badge badge-cat">{{ t.category }}</span>
+                  <span class="badge" :class="'badge-prio-'+t.priority">{{ t.priority }}</span>
+                  <span v-if="t.due_date" class="task-date">{{ t.due_date }}</span>
+                </div>
+                <div style="margin-top:8px;display:flex;gap:6px">
+                  <button @click="moveTask(t,'done')" style="background:rgba(67,233,123,0.12);color:#43e97b;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px;font-family:inherit">✓ Terminé</button>
+                  <button @click="moveTask(t,'todo')" style="background:rgba(255,255,255,0.05);color:var(--muted);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px;font-family:inherit">← Retour</button>
+                </div>
+              </div>
+            </div>
+            <!-- DONE -->
+            <div class="column">
+              <div class="col-header">
+                <div class="col-title">
+                  <div class="col-dot" style="background:var(--done)"></div>
+                  Terminé
+                </div>
+                <span class="col-count">{{ doneTasks.length }}</span>
+              </div>
+              <div v-if="doneTasks.length === 0" class="empty-state">
+                <div class="empty-icon">🎉</div>
+                <div class="empty-text">Aucune tâche</div>
+              </div>
+              <div v-for="t in doneTasks" :key="t.id" class="task-card" style="opacity:0.65">
+                <div class="task-title" style="text-decoration:line-through">{{ t.title }}</div>
+                <div class="task-meta">
+                  <span class="badge badge-cat">{{ t.category }}</span>
+                  <span class="task-date">{{ t.created_at }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- LIST VIEW -->
+        <template v-if="activeTab==='list'">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+            <div style="display:grid;grid-template-columns:1fr 90px 90px 100px 100px;gap:0;padding:10px 20px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">
+              <span>Titre</span><span>Catégorie</span><span>Priorité</span><span>Statut</span><span>Échéance</span>
+            </div>
+            <div v-for="t in filteredTasks" :key="t.id"
+              style="display:grid;grid-template-columns:1fr 90px 90px 100px 100px;gap:0;padding:12px 20px;border-bottom:1px solid var(--border);align-items:center;transition:background 0.1s;cursor:pointer"
+              onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''"
+            >
+              <span style="font-size:13px;font-weight:500">{{ t.title }}</span>
+              <span><span class="badge badge-cat">{{ t.category }}</span></span>
+              <span><span class="badge" :class="'badge-prio-'+t.priority">{{ t.priority }}</span></span>
+              <span style="font-size:12px;color:var(--muted)">{{ t.status }}</span>
+              <span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">{{ t.due_date || '—' }}</span>
+            </div>
+          </div>
+        </template>
+      </template>
+
+      <!-- TÂCHES PAGE -->
+      <template v-if="activeNav==='tasks'">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Mes tâches</div>
+            <div class="page-sub">{{ stats.total }} tâches au total</div>
+          </div>
+          <button class="btn-primary" @click="showModal=true">+ Nouvelle tâche</button>
+        </div>
+        <div class="toolbar">
+          <div class="search-box">
+            <span>🔍</span>
+            <input v-model="searchQ" placeholder="Rechercher une tâche..."/>
+          </div>
+          <button class="filter-btn" :class="{active: filterPrio==='urgent'}" @click="filterPrio = filterPrio==='urgent' ? '' : 'urgent'">🔴 Urgent</button>
+          <button class="filter-btn" :class="{active: filterPrio==='high'}" @click="filterPrio = filterPrio==='high' ? '' : 'high'">🟠 High</button>
+          <button class="filter-btn" :class="{active: filterPrio==='medium'}" @click="filterPrio = filterPrio==='medium' ? '' : 'medium'">🟡 Medium</button>
+        </div>
+        <div class="kanban">
+          <div class="column">
+            <div class="col-header">
+              <div class="col-title"><div class="col-dot" style="background:var(--todo)"></div>À faire</div>
+              <span class="col-count">{{ todoTasks.length }}</span>
+            </div>
+            <div v-for="t in todoTasks" :key="t.id" class="task-card" :style="{'--pc': prioColor(t.priority)}">
+              <div class="task-title">{{ t.title }}</div>
+              <div class="task-desc" v-if="t.description">{{ t.description }}</div>
+              <div class="task-meta">
+                <span class="badge badge-cat">{{ t.category }}</span>
+                <span class="badge" :class="'badge-prio-'+t.priority">{{ t.priority }}</span>
+                <span v-if="t.due_date" class="task-date">{{ t.due_date }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="column">
+            <div class="col-header">
+              <div class="col-title"><div class="col-dot" style="background:var(--progress)"></div>En cours</div>
+              <span class="col-count">{{ progressTasks.length }}</span>
+            </div>
+            <div v-for="t in progressTasks" :key="t.id" class="task-card" :style="{'--pc': prioColor(t.priority)}">
+              <div class="task-title">{{ t.title }}</div>
+              <div class="task-meta">
+                <span class="badge badge-cat">{{ t.category }}</span>
+                <span class="badge" :class="'badge-prio-'+t.priority">{{ t.priority }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="column">
+            <div class="col-header">
+              <div class="col-title"><div class="col-dot" style="background:var(--done)"></div>Terminé</div>
+              <span class="col-count">{{ doneTasks.length }}</span>
+            </div>
+            <div v-for="t in doneTasks" :key="t.id" class="task-card" style="opacity:0.6">
+              <div class="task-title" style="text-decoration:line-through">{{ t.title }}</div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- NOTIFICATIONS PAGE -->
+      <template v-if="activeNav==='notifs'">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Notifications</div>
+            <div class="page-sub">{{ unreadCount }} non lues</div>
+          </div>
+          <button class="btn-primary" @click="markAllRead">Tout marquer lu</button>
+        </div>
+        <div class="notif-panel">
+          <div v-for="n in notifications" :key="n.id" class="notif-item" :class="{unread: !n.read}" @click="n.read=true">
+            <div class="notif-dot" :class="{read: n.read}"></div>
+            <div>
+              <div class="notif-text">{{ n.message }}</div>
+              <div class="notif-time">{{ n.time }}</div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- MODAL Nouvelle tâche -->
+    <div class="modal-overlay" v-if="showModal" @click.self="showModal=false">
+      <div class="modal">
+        <div class="modal-title">➕ Nouvelle tâche</div>
+        <div class="form-group">
+          <label class="form-label">Titre *</label>
+          <input v-model="newTask.title" class="form-input" placeholder="Titre de la tâche..." @keyup.enter="addTask"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea v-model="newTask.description" class="form-textarea" placeholder="Description optionnelle..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Priorité</label>
+            <select v-model="newTask.priority" class="form-select">
+              <option value="low">Basse</option>
+              <option value="medium">Moyenne</option>
+              <option value="high">Haute</option>
+              <option value="urgent">Urgente</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Catégorie</label>
+            <select v-model="newTask.category" class="form-select">
+              <option>Dev</option><option>Projet</option><option>Perso</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Statut initial</label>
+            <select v-model="newTask.status" class="form-select">
+              <option value="todo">À faire</option>
+              <option value="in_progress">En cours</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date limite</label>
+            <input v-model="newTask.due_date" class="form-input" type="date"/>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showModal=false">Annuler</button>
+          <button class="btn-primary" @click="addTask">Créer la tâche</button>
+        </div>
+      </div>
+    </div>
+  </template>
+  `
+}).mount('#app');
+</script>
+</body>
+</html>
